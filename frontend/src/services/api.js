@@ -22,7 +22,17 @@ export async function createGallery(data) {
 export async function fetchGalleryById(id) {
   const res = await fetch(`${API_URL}/galleries/id/${id}`);
   if (!res.ok) throw new Error('Error al obtener galería');
-  return res.json();
+  const data = await res.json();
+  
+  // Mapear los nombres de los campos de snake_case a camelCase
+  return {
+    ...data,
+    allowDownload: data.allow_download || false,
+    allowFinalDownload: data.allow_final_download || false,
+    // Mantener los nombres originales para compatibilidad
+    allow_download: data.allow_download || false,
+    allow_final_download: data.allow_final_download || false
+  };
 }
 
 export async function setAllowDownload(id, allowDownload) {

@@ -48,14 +48,42 @@ router.get('/id/:id', async (req, res) => {
 // Obtener galería por link (público)
 router.get('/:link', async (req, res) => {
   try {
-    const { data: galleries, error } = await supabase
+    // Primero obtener la galería
+    const { data: galleryData, error: galleryError } = await supabase
       .from('galleries')
-      .select('*, photos(*), selected_photos(*)')
-      .eq('link', req.params.link);
-    if (error) throw error;
-    if (!galleries || galleries.length === 0) return res.status(404).json({ error: 'Galería no encontrada' });
-    res.json(galleries[0]);
+      .select('*')
+      .eq('link', req.params.link)
+      .single();
+      
+    if (galleryError) throw galleryError;
+    if (!galleryData) return res.status(404).json({ error: 'Galería no encontrada' });
+    
+    // Luego obtener las fotos de la galería
+    const { data: photos, error: photosError } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('gallery_id', galleryData.id);
+      
+    if (photosError) throw photosError;
+    
+    // Obtener las fotos seleccionadas
+    const { data: selectedPhotos, error: selectedError } = await supabase
+      .from('selected_photos')
+      .select('*')
+      .eq('gallery_id', galleryData.id);
+      
+    if (selectedError) throw selectedError;
+    
+    // Combinar todo en un solo objeto de respuesta
+    const response = {
+      ...galleryData,
+      photos: photos || [],
+      selected_photos: selectedPhotos || []
+    };
+    
+    res.json(response);
   } catch (err) {
+    console.error('Error al obtener galería:', err);
     res.status(500).json({ error: err.message });
   }
 });
